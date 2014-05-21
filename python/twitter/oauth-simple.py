@@ -42,9 +42,14 @@ from random import randint
 import hmac
 import binascii
 
-VERSION = '1.0'
-HTTP_METHOD = 'GET'
-SIGNATURE_METHOD = 'PLAINTEXT'
+# Embed your own keys for simplicity
+CONSUMER_KEY        = "your key goes here"
+CONSUMER_SECRET     = "your key goes here"
+ACCESS_TOKEN        = "your key goes here"
+ACCESS_TOKEN_SECRET = "your key goes here"
+# Remove these lines; we just do this for our own simplicity
+with open('secrets.txt', 'r') as secrets:
+    CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = [l.strip() for l in secrets.readlines()]
 
 
 class OAuthError(RuntimeError):
@@ -52,7 +57,7 @@ class OAuthError(RuntimeError):
     def __init__(self, message='OAuth error occured.'):
         self.message = message
 
-def escape(s):
+def _escape(s):
     """Escape a URL including any /."""
     return quote(s, safe='~')
 
@@ -63,15 +68,15 @@ def _utf8_str(s):
     else:
         return str(s)
 
-def generate_timestamp():
+def _generate_timestamp():
     """Get seconds since epoch (UTC)."""
     return int(time())
 
-def generate_nonce(length=8):
+def _generate_nonce(length=8):
     """Generate pseudorandom number."""
     return ''.join([str(randint(0, 9)) for i in range(length)])
 
-def generate_verifier(length=8):
+def _generate_verifier(length=8):
     """Generate pseudorandom number."""
     return ''.join([str(randint(0, 9)) for i in range(length)])
 
@@ -109,7 +114,7 @@ class OAuthToken(object):
         if verifier is not None:
             self.verifier = verifier
         else:
-            self.verifier = generate_verifier()
+            self.verifier = _generate_verifier()
 
     def to_string(self):
         data = {
@@ -154,11 +159,11 @@ class OAuthRequest(object):
         ... any additional parameters, as defined by the Service Provider.
     """
     parameters = None # OAuth parameters.
-    http_method = HTTP_METHOD
+    http_method = 'GET'
     http_url = None
-    version = VERSION
+    version = '1.0'
 
-    def __init__(self, http_method=HTTP_METHOD, http_url=None, parameters=None):
+    def __init__(self, http_method='GET', http_url=None, parameters=None):
         self.http_method = http_method
         self.http_url = http_url
         self.parameters = parameters or {}
@@ -192,12 +197,12 @@ class OAuthRequest(object):
         if self.parameters:
             for k, v in self.parameters.items():
                 if k[:6] == 'oauth_':
-                    auth_header += ', %s="%s"' % (k, escape(str(v)))
+                    auth_header += ', %s="%s"' % (k, _escape(str(v)))
         return {'Authorization': auth_header}
 
     def to_postdata(self):
         """Serialize as post data for a POST request."""
-        return '&'.join(['%s=%s' % (escape(str(k)), escape(str(v))) \
+        return '&'.join(['%s=%s' % (_escape(str(k)), _escape(str(v))) \
             for k, v in sorted(self.parameters.items())])
 
     def to_url(self):
@@ -213,7 +218,7 @@ class OAuthRequest(object):
         except:
             pass
         # Escape key values before sorting.
-        key_values = [(escape(_utf8_str(k)), escape(_utf8_str(v))) \
+        key_values = [(_escape(_utf8_str(k)), _escape(_utf8_str(v))) \
             for k,v in params.items()]
         # Sort lexicographically, first after key, then after value.
         key_values.sort()
@@ -285,15 +290,15 @@ class OAuthRequest(object):
     from_request = staticmethod(from_request)
 
     def from_consumer_and_token(oauth_consumer, token=None,
-            callback=None, verifier=None, http_method=HTTP_METHOD,
+            callback=None, verifier=None, http_method='GET',
             http_url=None, parameters=None):
         if not parameters:
             parameters = {}
 
         defaults = {
             'oauth_consumer_key': oauth_consumer.key,
-            'oauth_timestamp': generate_timestamp(),
-            'oauth_nonce': generate_nonce(),
+            'oauth_timestamp': _generate_timestamp(),
+            'oauth_nonce': _generate_nonce(),
             'oauth_version': OAuthRequest.version,
         }
 
@@ -314,7 +319,7 @@ class OAuthRequest(object):
         return OAuthRequest(http_method, http_url, parameters)
     from_consumer_and_token = staticmethod(from_consumer_and_token)
 
-    def from_token_and_callback(token, callback=None, http_method=HTTP_METHOD,
+    def from_token_and_callback(token, callback=None, http_method='GET',
             http_url=None, parameters=None):
         if not parameters:
             parameters = {}
@@ -378,14 +383,14 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
         
     def build_signature_base_string(self, oauth_request, consumer, token):
         sig = (
-            escape(oauth_request.get_normalized_http_method()),
-            escape(oauth_request.get_normalized_http_url()),
-            escape(oauth_request.get_normalized_parameters()),
+            _escape(oauth_request.get_normalized_http_method()),
+            _escape(oauth_request.get_normalized_http_url()),
+            _escape(oauth_request.get_normalized_parameters()),
         )
 
-        key = '%s&' % escape(consumer.secret)
+        key = '%s&' % _escape(consumer.secret)
         if token:
-            key += escape(token.secret)
+            key += _escape(token.secret)
         raw = '&'.join(sig)
         return key, raw
 
@@ -416,9 +421,9 @@ class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
 
     def build_signature_base_string(self, oauth_request, consumer, token):
         """Concatenates the consumer key and secret."""
-        sig = '%s&' % escape(consumer.secret)
+        sig = '%s&' % _escape(consumer.secret)
         if token:
-            sig = sig + escape(token.secret)
+            sig = sig + _escape(token.secret)
         return sig, sig
 
     def build_signature(self, oauth_request, consumer, token):
@@ -426,11 +431,14 @@ class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
             token)
         return key
 
-def access_resource(oauth_request):
+def access_resource(url, parameters):
     # via post body
     # -> some protected resources
+    consumer = OAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET)
+    token = OAuthToken(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+    oauth_request = OAuthRequest.from_consumer_and_token(consumer, token=token, http_method='GET', http_url=url, parameters=parameters)
+    oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), consumer, token)
     headers = {'Content-Type' :'application/x-www-form-urlencoded'}
-    print(oauth_request.to_url())
     req = request.Request(oauth_request.to_url(), headers=headers)
     response = request.urlopen(req)
     if PYTHON_3:
@@ -438,14 +446,6 @@ def access_resource(oauth_request):
     else:
         return response.read()
         
-with open('secrets.txt', 'r') as secrets:
-    CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = [l.strip() for l in secrets.readlines()]
-RESOURCE_URL = 'https://api.twitter.com/1.1/search/tweets.json'
-# access some protected resources
-consumer = OAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET)
+url = 'https://api.twitter.com/1.1/search/tweets.json'
 parameters = {'q': 'corgis'} # resource specific params
-token = OAuthToken(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-oauth_request = OAuthRequest.from_consumer_and_token(consumer, token=token, http_method='GET', http_url=RESOURCE_URL, parameters=parameters)
-oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), consumer, token)
-params = access_resource(oauth_request)
-print(len(params))
+print(len(access_resource(url, parameters)))

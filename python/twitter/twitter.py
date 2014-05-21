@@ -1,26 +1,36 @@
+# Identify Python version
 import sys
-from time import time
 PYTHON_3 = sys.version_info >= (3, 0)
+
+# URL Libraries
 if PYTHON_3:
     import urllib.request as request
-    from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
+    from urllib.parse import quote, quote_plus, urlunparse, urlparse, unquote
     from urllib.error import HTTPError
+    unicode = type(None)
 else:
-    import urllib2
-    from urllib import quote, quote_plus
+    import urllib2 as request
+    from urllib import quote, quote_plus, unquote
     from urllib2 import HTTPError
-    from urlparse import urlsplit, urlunsplit
+    from urlparse import urlunparse, urlparse
+
+# Try to get json loaded; might require external package!
 try:
     import simplejson as json
 except ImportError:
     import json
-from datetime import datetime
-from random import getrandbits
-import hashlib
-import hmac
-import base64
 
+# Various OAuth stuff    
+import cgi
+from time import time
+from random import randint
 
+# Embed your own keys for simplicity
+CONSUMER_KEY        = "your key goes here"
+CONSUMER_SECRET     = "your key goes here"
+ACCESS_TOKEN        = "your key goes here"
+ACCESS_TOKEN_SECRET = "your key goes here"
+# Remove these lines; we just do this for our own simplicity
 with open('twitter/secrets.txt', 'r') as secrets:
     CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = [l.strip() for l in secrets.readlines()]
 
@@ -86,13 +96,7 @@ def _get(url, headers):
         req = urllib2.Request(url, headers=headers)
         response = urllib2.urlopen(req)
         return response.read()
-        
-def force_unicode_to_str(text):
-    if not PYTHON_3 and isinstance(input, unicode):
-        return input.encode('utf-8')
-    else:
-        return str(text)
-        
+                
 def _recursively_convert_unicode_to_str(input):
     """
     Force the given input to only use `str` instead of `bytes` or `unicode`.
