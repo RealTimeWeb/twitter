@@ -431,7 +431,7 @@ class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
             token)
         return key
 
-def access_resource(url, parameters):
+def _get_oauth(url, parameters):
     # via post body
     # -> some protected resources
     consumer = OAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET)
@@ -448,4 +448,4 @@ def access_resource(url, parameters):
         
 url = 'https://api.twitter.com/1.1/search/tweets.json'
 parameters = {'q': 'corgis'} # resource specific params
-print(len(access_resource(url, parameters)))
+print(len(_get_oauth(url, parameters)))

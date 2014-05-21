@@ -6,7 +6,6 @@ class TestTwitterOnline(unittest.TestCase):
         twitter.connect()
     def test_connect(self):
         r = twitter.search("corgis great")
-        print(r)
         self.assertTrue(r)
     """
     def test_reports(self):
