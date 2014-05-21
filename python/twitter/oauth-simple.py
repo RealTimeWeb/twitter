@@ -37,18 +37,12 @@ else:
 
 
 import cgi
-import time
+from time import time
 from random import randint
 import hmac
 import binascii
 
-def force_unicode_to_str(text):
-    if not PYTHON_3 and isinstance(input, unicode):
-        return input.encode('utf-8')
-    else:
-        return str(text)
-
-VERSION = '1.0' # Hi Blaine!
+VERSION = '1.0'
 HTTP_METHOD = 'GET'
 SIGNATURE_METHOD = 'PLAINTEXT'
 
@@ -57,10 +51,6 @@ class OAuthError(RuntimeError):
     """Generic exception class."""
     def __init__(self, message='OAuth error occured.'):
         self.message = message
-
-def build_authenticate_header(realm=''):
-    """Optional WWW-Authenticate header (401 error)"""
-    return {'WWW-Authenticate': 'OAuth realm="%s"' % realm}
 
 def escape(s):
     """Escape a URL including any /."""
@@ -75,7 +65,7 @@ def _utf8_str(s):
 
 def generate_timestamp():
     """Get seconds since epoch (UTC)."""
-    return int(time.time())
+    return int(time())
 
 def generate_nonce(length=8):
     """Generate pseudorandom number."""
@@ -91,11 +81,7 @@ class OAuthConsumer(object):
 
     OAuthConsumer is a data type that represents the identity of the Consumer
     via its shared secret with the Service Provider.
-
     """
-    key = None
-    secret = None
-
     def __init__(self, key, secret):
         self.key = key
         self.secret = secret
@@ -119,28 +105,11 @@ class OAuthToken(object):
         self.key = key
         self.secret = secret
 
-    def set_callback(self, callback):
-        self.callback = callback
-        self.callback_confirmed = 'true'
-
     def set_verifier(self, verifier=None):
         if verifier is not None:
             self.verifier = verifier
         else:
             self.verifier = generate_verifier()
-
-    def get_callback_url(self):
-        if self.callback and self.verifier:
-            # Append the oauth_verifier.
-            parts = urlparse(self.callback)
-            scheme, netloc, path, params, query, fragment = parts[:6]
-            if query:
-                query = '%s&oauth_verifier=%s' % (query, self.verifier)
-            else:
-                query = 'oauth_verifier=%s' % self.verifier
-            return urlunparse((scheme, netloc, path, params,
-                query, fragment))
-        return self.callback
 
     def to_string(self):
         data = {
@@ -383,35 +352,6 @@ class OAuthRequest(object):
         return parameters
     _split_url_string = staticmethod(_split_url_string)
 
-class OAuthClient(object):
-    """OAuthClient is a worker to attempt to execute a request."""
-    consumer = None
-    token = None
-
-    def __init__(self, oauth_consumer, oauth_token):
-        self.consumer = oauth_consumer
-        self.token = oauth_token
-
-    def get_consumer(self):
-        return self.consumer
-
-    def get_token(self):
-        return self.token
-
-    def fetch_request_token(self, oauth_request):
-        """-> OAuthToken."""
-        raise NotImplementedError
-
-    def fetch_access_token(self, oauth_request):
-        """-> OAuthToken."""
-        raise NotImplementedError
-
-    def access_resource(self, oauth_request):
-        """-> Some protected resource."""
-        raise NotImplementedError
-
-
-
 class OAuthSignatureMethod(object):
     """A strategy class that implements a signature method."""
     def get_name(self):
@@ -485,60 +425,27 @@ class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
         key, raw = self.build_signature_base_string(oauth_request, consumer,
             token)
         return key
-        
-# example client using httplib with headers
-class SimpleOAuthClient(OAuthClient):
 
-    def __init__(self, server, port=0, request_token_url='', access_token_url='', authorization_url=''):
-        self.server = server
-        self.port = port
-        self.request_token_url = request_token_url
-        self.access_token_url = access_token_url
-        self.authorization_url = authorization_url
-        self.connection = ""#httplib.HTTPConnection("%s:%d" % (self.server, self.port))
-
-    def fetch_request_token(self, oauth_request):
-        # via headers
-        # -> OAuthToken
-        self.connection.request(oauth_request.http_method, self.request_token_url, headers=oauth_request.to_header()) 
-        response = self.connection.getresponse()
-        return oauth.OAuthToken.from_string(response.read())
-
-    def fetch_access_token(self, oauth_request):
-        # via headers
-        # -> OAuthToken
-        self.connection.request(oauth_request.http_method, self.access_token_url, headers=oauth_request.to_header()) 
-        response = self.connection.getresponse()
-        return oauth.OAuthToken.from_string(response.read())
-
-    def authorize_token(self, oauth_request):
-        # via url
-        # -> typically just some okay response
-        self.connection.request(oauth_request.http_method, oauth_request.to_url()) 
-        response = self.connection.getresponse()
+def access_resource(oauth_request):
+    # via post body
+    # -> some protected resources
+    headers = {'Content-Type' :'application/x-www-form-urlencoded'}
+    print(oauth_request.to_url())
+    req = request.Request(oauth_request.to_url(), headers=headers)
+    response = request.urlopen(req)
+    if PYTHON_3:
+        return response.read().decode('utf-8')
+    else:
         return response.read()
-
-    def access_resource(self, oauth_request):
-        # via post body
-        # -> some protected resources
-        headers = {'Content-Type' :'application/x-www-form-urlencoded'}
-        print(oauth_request.to_url())
-        req = request.Request(oauth_request.to_url(), headers=headers)
-        response = request.urlopen(req)
-        if PYTHON_3:
-            return response.read().decode('utf-8')
-        else:
-            return response.read()
         
 with open('secrets.txt', 'r') as secrets:
     CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = [l.strip() for l in secrets.readlines()]
 RESOURCE_URL = 'https://api.twitter.com/1.1/search/tweets.json'
 # access some protected resources
-client = SimpleOAuthClient('https://api.twitter.com/')
 consumer = OAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET)
 parameters = {'q': 'corgis'} # resource specific params
 token = OAuthToken(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 oauth_request = OAuthRequest.from_consumer_and_token(consumer, token=token, http_method='GET', http_url=RESOURCE_URL, parameters=parameters)
 oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), consumer, token)
-params = client.access_resource(oauth_request)
+params = access_resource(oauth_request)
 print(len(params))
