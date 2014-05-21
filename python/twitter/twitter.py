@@ -122,7 +122,9 @@ def _recursively_convert_unicode_to_str(input):
     elif isinstance(input, list):
         return [_recursively_convert_unicode_to_str(element) for element in input]
     elif not PYTHON_3 and isinstance(input, unicode):
-        return input.encode('utf-8')
+        return input.encode('ascii', 'replace')
+    elif PYTHON_3 and isinstance(input, str):
+        return str(input.encode('ascii', 'replace').decode('ascii'))
     else:
         return input
 
@@ -311,45 +313,125 @@ class User(object):
     """
     A Twitter user (A twit?)
     """
-    def __init__(self, id, name, screen_name, description, followers, friends, created, favorites, verified):
+    def __init__(self, id, name, screen_name, description, location, followers, friends, created, favorites, tweets, verified):
         """
         Creates a new User
         
-        :param int id: A unique ID number for this user
+        :param int id: A unique ID number for this user.
+        :param str name: The human-readable name for this user (e.g., "Austin Cory Bart")
+        :param str screen_name: The short, internal name for the user (e.g., "acbart")
+        :param str description: A user-provided description of this person.
+        :param str location: A user-provided location for this person.
+        :param str created: A human-readable string that indicates when the account was created.
+        :param int followers: The number of people following this person.
+        :param int friends: The number of people this person has friended (is following).
+        :param int favorites: The number of tweets this person has favorited.
+        :param int tweets: The number of tweets this user has made.
+        :param bool verified: Whether or not this person has been verified.
         """
-
-class Tweet(object):
-    """
-    A Tweet from Twitter.
-    """
-    def __init__(self, location, coordinate, id, text, user):
-        """
-        Creates a new Report
-        
-        :param area: A region that contains all the earthquakes.
-        :type area: BoundingBox
-        :param earthquakes: A list of the earthquakes.
-        :type earthquakes: listof Earthquake
-        :param title: A human-readable title that describes this data.
-        :type title: string
-        :returns: Report
-        """
-        self.area = area
-        self.earthquakes = earthquakes
-        self.title = title
+        self.id = id
+        self.name = name
+        self.screen_name = screen_name
+        self.description = description
+        self.location = location
+        self.followers = followers
+        self.friends = friends
+        self.created = created
+        self.favorites = favorites
+        self.tweets = tweets
+        self.verified = verified
         
     def __unicode__(self):
-        return '<Report {}, {} Quakes>'.format(self.title, len(self.earthquakes))
+        return '<User {}>'.format(self.screen_name)
     
     def __repr__(self):
         if PYTHON_3:
-            return '<Report {}, {} Quakes>'.format(self.title, len(self.earthquakes))
+            return '<User {}>'.format(self.screen_name)
         else:
             return unicode(self).encode('utf-8')
     
     def __str__(self):
         if PYTHON_3:
-            return '<Report {}, {} Quakes>'.format(self.title, len(self.earthquakes))
+            return '<User {}>'.format(self.screen_name)
+        else:
+            return unicode(self).encode('utf-8')
+    
+    @staticmethod
+    def _from_json(json_data):
+        """
+        Creates a Tweet from json data.
+        
+        :param json_data: The raw json data to parse
+        :type json_data: dict
+        :returns: Report
+        """
+        return User(json_data.get('id', ""),
+                    json_data.get('name', ""),
+                    json_data.get('screen_name', ""),
+                    json_data.get('description', ""),
+                    json_data.get('location', ""),
+                    _parse_int(json_data.get('followers_count', ""), 0),
+                    _parse_int(json_data.get('friends_count', ""), 0),
+                    json_data.get('created_at', ""),
+                    _parse_int(json_data.get('favourites_count', "0"), 0),
+                    _parse_int(json_data.get('statuses_count', "0"), 0),
+                    _parse_boolean(json_data.get('verified', False), False))
+    
+    def _to_dict(self):
+        return {"id": self.id,
+                "name": self.name,
+                "screen_name": self.screen_name,
+                "description": self.description,
+                "location": self.location,
+                "followers": self.followers,
+                "friends": self.friends,
+                "created": self.created,
+                "favorites": self.favorites,
+                "tweets": self.tweets,
+                "verified": self.verified}
+
+class Tweet(object):
+    """
+    A Tweet from Twitter.
+    """
+    def __init__(self, id, text, user, coordinates, created, favorited, retweets):
+        """
+        Creates a new Tweet
+        
+        :param int id: A unique ID number for this user.
+        :param str text: The text of this tweet.
+        :param User user: The User that made this tweet.
+        :param Coordinate coordinates: The latitude and longitude that this tweet was made from.
+        :param str created: A human-readable string that indicates when the account was created.
+        :param int favorited: The number of times this post has been favorited.
+        :param int retweets: The number of times this post has been retweeted.
+        :returns: Tweet
+        """
+        self.id = id
+        self.text = text
+        self.user = user
+        self.coordinates = coordinates
+        self.created = created
+        self.favorited = favorited
+        self.retweets = retweets
+        
+    def _short_text(self):
+        return self.text if len(self.text) < 30 else self.text[:27]+'...'
+        
+    short_text = property(_short_text)
+        
+    def __unicode__(self):
+        return '<Tweet "{}" by {}>'.format(self.short_text, self.user.screen_name)
+    
+    def __repr__(self):
+        if PYTHON_3:
+            return '<Tweet "{}" by {}>'.format(self.short_text, self.user.screen_name)
+        else:
+            return unicode(self).encode('utf-8')
+    
+    def __str__(self):
+        if PYTHON_3:
+            return '<Tweet "{}" by {}>'.format(self.short_text, self.user.screen_name)
         else:
             return unicode(self).encode('utf-8')
     
@@ -362,54 +444,39 @@ class Tweet(object):
         :type json_data: dict
         :returns: Report
         """
-        if 'bbox' in json_data:
-            box = BoundingBox._from_json(json_data['bbox'])
+        if 'user' in json_data:
+            user = User._from_json(json_data['user'])
         else:
-            box = BoundingBox(Coordinate(0.,0.,0.), Coordinate(0.,0.,0.))
-        if 'features' in json_data and json_data['features']:
-            quakes = list(map(Earthquake._from_json, json_data['features']))
+            user = User._from_json({})
+        if 'coordinates' in json_data:
+            coordinates = Coordinate._from_json(json_data['coordinates'])
         else:
-            quakes = []
-        try:
-            title = json_data['metadata']['title']
-        except KeyError:
-            raise USGSException("No report title information returned by server")
-        return Report(box, quakes, title)
+            coordinates = None
+        return Tweet(json_data.get('id', ""),
+                     json_data.get('text', ""),
+                     user,
+                     coordinates,
+                     json_data.get('created_at', ""),
+                     _parse_int(json_data.get('favorite_count', "0"), 0),
+                     _parse_int(json_data.get('retweet_count', "0"), 0))
+     
+    def _to_dict(self):
+        """
+        Creates a dictionary representation of this Tweet.
+        
+        :returns: Dict
+        """
+        return {"id" : self.id,
+                "text": self.text, 
+                "user": self.user._to_dict(),
+                "coordinates": self.coordinates._to_dict(), 
+                "created": self.created, 
+                "favorited": self.favorited, 
+                "retweets": self.retweets}
 
 ################################################################################
 # Service Methods
 ################################################################################
-
-def get_report(time='hour', threshold='significant'):
-    """
-    Retrieves a new Report about recent earthquakes.
-    
-    :param str time: A string indicating the time range of earthquakes to report. Must be either "hour" (only earthquakes in the past hour), "day" (only earthquakes that happened today), "week" (only earthquakes that happened in the past 7 days), or "month" (only earthquakes that happened in the past 30 days).
-    :param str threshold: A string indicating what kind of earthquakes to report. Must be either "significant" (only significant earthquakes), "all" (all earthquakes, regardless of significance), "4.5", "2.5", or "1.0". Note that for the last three, all earthquakes at and above that level will be reported.
-    :returns: :ref:`Report`
-    """
-    if threshold not in THRESHOLDS:
-        raise USGSException('Unknown threshold: "{}" (must be either "significant", "all", "4.5", "2.5", or "1.0")'.format(threshold))
-    if time not in TIMES:
-        raise USGSException('Unknown time: "{}" (must be either "hour", "day", "week", "month")'.format(time))
-    try:
-        result = _get_report_string(time, threshold)
-    except HTTPError as e:
-        raise USGSException("Internet error ({}): {}".format(e.code, e.reason))
-    if result == "":
-        formatted_threshold = 'Magnitude {}+' if threshold not in ('significant', 'all') else threshold.title()
-        return Report._from_json({'metadata': {'title': 'USGS {} Earthquakes, Past {}'.format(formatted_threshold, time.title())}})
-    elif result:
-        try:
-            json_result = _from_json(result)
-        except ValueError:
-            raise USGSException("The response from the server didn't make any sense.")
-        return Report._from_json(json_result)
-    else:
-        if _CONNECTED:
-            raise USGSException("No response from the server.")
-        else:
-            raise USGSException("No data was in the cache for this time and threshold ('{}', '{}').".format(time, threshold))
     
 def _get_search_request(terms):
     """
@@ -434,12 +501,51 @@ def _get_search_string(terms):
     return result
     
 def search(terms):
-    result = _get_search_string(terms)
-    with open('tempt.txt', 'w') as w:
-        w.write(result)
-    json_result = _from_json(result)
-    return json_result
+    """
+    Returns a list of Tweets that were found with the given search terms.
     
+===========================  ============================================================================
+Query                        Description
+===========================  ============================================================================
+watching now                 containing both "watching" and "now". This is the default operator.
+"happy hour"                 containing the exact phrase "happy hour".
+love OR hate                 containing either "love" or "hate" (or both).
+beer -root                   containing "beer" but not "root".
+#haiku                       containing the hashtag "haiku".
+from:alexiskold              sent from person "alexiskold".
+to:techcrunch                sent to person "techcrunch".
+@mashable                    referencing person "mashable".
+superhero since:2010-12-27   containing "superhero" and sent since date "2010-12-27" (year-month-day).
+ftw until:2010-12-27         containing "ftw" and sent before the date "2010-12-27".
+movie -scary :)              containing "movie", but not "scary", and with a positive attitude.
+flight :(                    containing "flight" and with a negative attitude.
+traffic ?                    containing "traffic" and asking a question.
+hilarious filter:links       containing "hilarious" and linking to URL.
+news source:twitterfeed      containing "news" and entered via TwitterFeed
+===========================  ============================================================================
+    
+    :param str terms: The string that will be used to search with.
+    :returns: List of Tweets
+    """
+    if not isinstance(terms, str):
+        raise TwitterException("Terms must be a string!")
+    try:
+        result = _get_search_string(terms)
+    except HTTPError as e:
+        raise TwitterException("Internet error ({}): {}".format(e.code, e.reason))
+    if result == "":
+        return []
+    elif result:
+        try:
+            json_result = _from_json(result)
+        except ValueError:
+            raise TwitterException("The response from the server didn't make any sense.")
+        return list(map(Tweet._from_json, json_result['statuses']))
+    else:
+        if _CONNECTED:
+            raise TwitterException("No response from the server.")
+        else:
+            raise TwitterException('No data was in the cache for these terms: "{}".'.format(terms))
     
 ################################################################################
 # OAuth Madness

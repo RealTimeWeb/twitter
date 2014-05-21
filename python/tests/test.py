@@ -5,8 +5,9 @@ class TestTwitterOnline(unittest.TestCase):
     def setUp(self):
         twitter.connect()
     def test_connect(self):
-        r = twitter.search("corgis great")
-        self.assertTrue(r)
+        r = twitter.search("corgis")
+        first = r[0]._to_dict()
+        self.assertTrue(first)
     """
     def test_reports(self):
         for threshold in ('significant', '4.5', '2.5', '1.0', 'all'):
