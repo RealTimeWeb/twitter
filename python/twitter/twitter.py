@@ -1,7 +1,6 @@
 import sys
 from time import time
 PYTHON_3 = sys.version_info >= (3, 0)
-import urllib
 if PYTHON_3:
     import urllib.request as request
     from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
@@ -87,6 +86,12 @@ def _get(url, headers):
         req = urllib2.Request(url, headers=headers)
         response = urllib2.urlopen(req)
         return response.read()
+        
+def force_unicode_to_str(text):
+    if not PYTHON_3 and isinstance(input, unicode):
+        return input.encode('utf-8')
+    else:
+        return str(text)
         
 def _recursively_convert_unicode_to_str(input):
     """

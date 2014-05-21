@@ -26,24 +26,27 @@ import sys
 PYTHON_3 = sys.version_info >= (3, 0)
 if PYTHON_3:
     import urllib.request as request
-    from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
+    from urllib.parse import quote, quote_plus, urlunparse, urlparse, unquote
     from urllib.error import HTTPError
+    unicode = type(None)
 else:
     import urllib2 as request
-    from urllib import quote, quote_plus
+    from urllib import quote, quote_plus, unquote
     from urllib2 import HTTPError
-    from urlparse import urlsplit, urlunsplit
+    from urlparse import urlunparse, urlparse
 
 
 import cgi
-import urllib
 import time
-import random
-import urlparse
+from random import randint
 import hmac
 import binascii
-import httplib
 
+def force_unicode_to_str(text):
+    if not PYTHON_3 and isinstance(input, unicode):
+        return input.encode('utf-8')
+    else:
+        return str(text)
 
 VERSION = '1.0' # Hi Blaine!
 HTTP_METHOD = 'GET'
@@ -61,7 +64,7 @@ def build_authenticate_header(realm=''):
 
 def escape(s):
     """Escape a URL including any /."""
-    return urllib.quote(s, safe='~')
+    return quote(s, safe='~')
 
 def _utf8_str(s):
     """Convert unicode to utf-8."""
@@ -76,11 +79,11 @@ def generate_timestamp():
 
 def generate_nonce(length=8):
     """Generate pseudorandom number."""
-    return ''.join([str(random.randint(0, 9)) for i in range(length)])
+    return ''.join([str(randint(0, 9)) for i in range(length)])
 
 def generate_verifier(length=8):
     """Generate pseudorandom number."""
-    return ''.join([str(random.randint(0, 9)) for i in range(length)])
+    return ''.join([str(randint(0, 9)) for i in range(length)])
 
 
 class OAuthConsumer(object):
@@ -129,13 +132,13 @@ class OAuthToken(object):
     def get_callback_url(self):
         if self.callback and self.verifier:
             # Append the oauth_verifier.
-            parts = urlparse.urlparse(self.callback)
+            parts = urlparse(self.callback)
             scheme, netloc, path, params, query, fragment = parts[:6]
             if query:
                 query = '%s&oauth_verifier=%s' % (query, self.verifier)
             else:
                 query = 'oauth_verifier=%s' % self.verifier
-            return urlparse.urlunparse((scheme, netloc, path, params,
+            return urlunparse((scheme, netloc, path, params,
                 query, fragment))
         return self.callback
 
@@ -146,7 +149,7 @@ class OAuthToken(object):
         }
         if self.callback_confirmed is not None:
             data['oauth_callback_confirmed'] = self.callback_confirmed
-        return urllib.urlencode(data)
+        return urlencode(data)
  
     def from_string(s):
         """ Returns a token from something like:
@@ -207,7 +210,7 @@ class OAuthRequest(object):
     def get_nonoauth_parameters(self):
         """Get any non-OAuth parameters."""
         parameters = {}
-        for k, v in self.parameters.iteritems():
+        for k, v in self.parameters.items():
             # Ignore oauth parameters.
             if k.find('oauth_') < 0:
                 parameters[k] = v
@@ -218,7 +221,7 @@ class OAuthRequest(object):
         auth_header = 'OAuth realm="%s"' % realm
         # Add the oauth parameters.
         if self.parameters:
-            for k, v in self.parameters.iteritems():
+            for k, v in self.parameters.items():
                 if k[:6] == 'oauth_':
                     auth_header += ', %s="%s"' % (k, escape(str(v)))
         return {'Authorization': auth_header}
@@ -226,7 +229,7 @@ class OAuthRequest(object):
     def to_postdata(self):
         """Serialize as post data for a POST request."""
         return '&'.join(['%s=%s' % (escape(str(k)), escape(str(v))) \
-            for k, v in self.parameters.iteritems()])
+            for k, v in sorted(self.parameters.items())])
 
     def to_url(self):
         """Serialize as a URL for a GET request."""
@@ -254,7 +257,7 @@ class OAuthRequest(object):
 
     def get_normalized_http_url(self):
         """Parses the URL and rebuilds it to be scheme://host/path."""
-        parts = urlparse.urlparse(self.http_url)
+        parts = urlparse(self.http_url)
         scheme, netloc, path = parts[:3]
         # Exclude default port numbers.
         if scheme == 'http' and netloc[-3:] == ':80':
@@ -302,7 +305,7 @@ class OAuthRequest(object):
             parameters.update(query_params)
 
         # URL parameters.
-        param_str = urlparse.urlparse(http_url)[4] # query
+        param_str = urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
         parameters.update(url_params)
 
@@ -368,15 +371,15 @@ class OAuthRequest(object):
             # Split key-value.
             param_parts = param.split('=', 1)
             # Remove quotes and unescape the value.
-            params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))
+            params[param_parts[0]] = unquote(param_parts[1].strip('\"'))
         return params
     _split_header = staticmethod(_split_header)
 
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
         parameters = cgi.parse_qs(param_str, keep_blank_values=False)
-        for k, v in parameters.iteritems():
-            parameters[k] = urllib.unquote(v[0])
+        for k, v in parameters.items():
+            parameters[k] = unquote(v[0])
         return parameters
     _split_url_string = staticmethod(_split_url_string)
 
@@ -452,6 +455,9 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
             token)
 
         # HMAC object.
+        if PYTHON_3:
+            key = key.encode('utf-8')
+            raw = raw.encode('utf-8')
         try:
             import hashlib # 2.5
             hashed = hmac.new(key, raw, hashlib.sha1)
@@ -460,7 +466,7 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
             hashed = hmac.new(key, raw, sha)
 
         # Calculate the digest base 64.
-        return binascii.b2a_base64(hashed.digest())[:-1]
+        return binascii.b2a_base64(hashed.digest())[:-1].decode('utf-8')
 
 
 class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
@@ -483,7 +489,7 @@ class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
 # example client using httplib with headers
 class SimpleOAuthClient(OAuthClient):
 
-    def __init__(self, server, port=httplib.HTTP_PORT, request_token_url='', access_token_url='', authorization_url=''):
+    def __init__(self, server, port=0, request_token_url='', access_token_url='', authorization_url=''):
         self.server = server
         self.port = port
         self.request_token_url = request_token_url
@@ -516,15 +522,13 @@ class SimpleOAuthClient(OAuthClient):
         # via post body
         # -> some protected resources
         headers = {'Content-Type' :'application/x-www-form-urlencoded'}
+        print(oauth_request.to_url())
         req = request.Request(oauth_request.to_url(), headers=headers)
         response = request.urlopen(req)
         if PYTHON_3:
             return response.read().decode('utf-8')
         else:
             return response.read()
-        #self.connection.request('POST', RESOURCE_URL, body=oauth_request.to_postdata(), headers=headers)
-        #response = self.connection.getresponse()
-        #return response.read()
         
 with open('secrets.txt', 'r') as secrets:
     CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = [l.strip() for l in secrets.readlines()]
@@ -537,4 +541,4 @@ token = OAuthToken(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 oauth_request = OAuthRequest.from_consumer_and_token(consumer, token=token, http_method='GET', http_url=RESOURCE_URL, parameters=parameters)
 oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), consumer, token)
 params = client.access_resource(oauth_request)
-print params
+print(len(params))
