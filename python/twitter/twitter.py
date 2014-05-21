@@ -1,20 +1,29 @@
 import sys
+from time import time
 PYTHON_3 = sys.version_info >= (3, 0)
 import urllib
-HEADER = { 'User-Agent' : 'CORGIS Twitter library for educational purposes' }
 if PYTHON_3:
     import urllib.request as request
-    from urllib.parse import quote_plus
+    from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
     from urllib.error import HTTPError
 else:
     import urllib2
-    from urllib import quote_plus
+    from urllib import quote, quote_plus
     from urllib2 import HTTPError
+    from urlparse import urlsplit, urlunsplit
 try:
     import simplejson as json
 except ImportError:
     import json
 from datetime import datetime
+from random import getrandbits
+import hashlib
+import hmac
+import base64
+
+
+with open('twitter/secrets.txt', 'r') as secrets:
+    CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = [l.strip() for l in secrets.readlines()]
 
 ################################################################################
 # Auxilary
@@ -25,8 +34,13 @@ def urlencode(query, params):
     Correctly convert the given query and parameters into a full query+query
     string, ensuring the order of the params.
     """
+    # apparently contrary to the HTTP RFCs, spaces in arguments must be encoded as
+    # %20 rather than '+' when constructing an OAuth signature (and therefore
+    # also in the request itself.)
+    # Taken from sixohsix/twitter (https://github.com/sixohsix/twitter/)
     return query + '?' + "&".join(key+'='+quote_plus(str(value)) 
-                                  for key, value in params)
+                                  for key, value in params).replace("+", "%20")
+                                  
 
 def _parse_int(value, default=0):
     """
@@ -61,16 +75,16 @@ def _parse_boolean(value, default=False):
     except ValueError:
         return default
         
-def _get(url):
+def _get(url, headers):
     """
     Convert a URL into it's response (a *str*).
     """
     if PYTHON_3:
-        req = request.Request(url, headers=HEADER)
+        req = request.Request(url, headers=headers)
         response = request.urlopen(req)
         return response.read().decode('utf-8')
     else:
-        req = urllib2.Request(url, headers=HEADER)
+        req = urllib2.Request(url, headers=headers)
         response = urllib2.urlopen(req)
         return response.read()
         
@@ -544,4 +558,31 @@ def get_report(time='hour', threshold='significant'):
             raise USGSException("No response from the server.")
         else:
             raise USGSException("No data was in the cache for this time and threshold ('{}', '{}').".format(time, threshold))
+    
+def _get_search_request(terms):
+    """
+    Used to build the request string used by :func:`search`.
+    
+    :param str terms: The string that will be used to search wtih.
+    """
+    params = sorted([('q', terms),
+                     ('oauth_consumer_key', CONSUMER_KEY),
+                     ('oauth_token', ACCESS_TOKEN),
+                     ('oauth_signature_method', 'HMAC-SHA1'),
+                     ('oauth_version', '1.0'),
+                     ('oauth_timestamp', str(int(time()))),
+                     ('oauth_nonce', str(getrandbits(64)))])
+    url = urlencode('https://api.twitter.com/1.1/search/tweets.json', params)
+    key = CONSUMER_SECRET + "&" + quote(ACCESS_TOKEN_SECRET, safe='~').encode('ascii')
+    digest = hmac.new(key, url.encode('ascii'), hashlib.sha1).digest()
+    signature = (base64.b64encode(digest))
+    url += '&oauth_signature='+ quote(signature, safe='~')
+    return url
+    
+def search(terms):
+    request = _get_search_request(terms)
+    print(request)
+    result = _get(request,
+                  { 'User-Agent' : 'CORGIS Twitter library for educational purposes',
+                  })
     

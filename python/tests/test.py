@@ -1,10 +1,14 @@
-import earthquakes.earthquakes as earthquakes
+import twitter.twitter as twitter
 import unittest
 
-class TestEarthquakesOnline(unittest.TestCase):
+class TestTwitterOnline(unittest.TestCase):
     def setUp(self):
-        earthquakes.connect()
-    
+        twitter.connect()
+    def test_connect(self):
+        r = twitter.search("corgis great")
+        print(r)
+        self.assertTrue(r)
+    """
     def test_reports(self):
         for threshold in ('significant', '4.5', '2.5', '1.0', 'all'):
             for time in ('hour', 'day', 'week', 'month'):
@@ -45,8 +49,9 @@ class TestEarthquakesOnline(unittest.TestCase):
         with self.assertRaises(earthquakes.USGSException):
             earthquakes.get_report("forever", "all")
         with self.assertRaises(earthquakes.USGSException):
-            earthquakes.get_report("hour", "some")
+            earthquakes.get_report("hour", "some")"""
             
+"""
 class TestearthquakesEditing(unittest.TestCase):
     def setUp(self):
         earthquakes.connect()
@@ -84,7 +89,7 @@ class TestearthquakesOffline(unittest.TestCase):
         earthquakes.get_report("week", 'all')
         empty = earthquakes.get_report("week", 'all')
         self.assertIsInstance(empty, earthquakes.Report)
-        self.assertFalse(empty.earthquakes)
+        self.assertFalse(empty.earthquakes)"""
    
 if __name__ == '__main__':
     unittest.main()
