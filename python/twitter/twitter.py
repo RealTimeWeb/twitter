@@ -32,25 +32,27 @@ import hmac
 import binascii
 
 # Embed your own keys for simplicity
-CONSUMER_KEY        = "your key goes here"
-CONSUMER_SECRET     = "your key goes here"
-ACCESS_TOKEN        = "your key goes here"
+CONSUMER_KEY = "your key goes here"
+CONSUMER_SECRET = "your key goes here"
+ACCESS_TOKEN = "your key goes here"
 ACCESS_TOKEN_SECRET = "your key goes here"
 # Remove these lines; we just do this for our own simplicity
 with open('twitter/secrets.txt', 'r') as secrets:
-    CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = [l.strip() for l in secrets.readlines()]
+    CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET = \
+        [l.strip() for l in secrets.readlines()]
 
 ################################################################################
 # Auxilary
 ################################################################################
+
 
 def urlencode(query, params):
     """
     Correctly convert the given query and parameters into a full query+query
     string, ensuring the order of the params.
     """
-    # apparently contrary to the HTTP RFCs, spaces in arguments must be encoded as
-    # %20 rather than '+' when constructing an OAuth signature (and therefore
+    # apparently contrary to the HTTP RFCs, spaces in arguments must be encoded
+    # as %20 rather than '+' when constructing an OAuth signature (and therefore
     # also in the request itself.)
     # Taken from sixohsix/twitter (https://github.com/sixohsix/twitter/)
     return query + '?' + "&".join(key+'='+quote_plus(str(value)) 
@@ -68,6 +70,7 @@ def _parse_int(value, default=0):
     except ValueError:
         return default
 
+
 def _parse_float(value, default=0.0):
     """
     Attempt to cast *value* into a float, returning *default* if it fails.
@@ -79,6 +82,7 @@ def _parse_float(value, default=0.0):
     except ValueError:
         return default
 
+
 def _parse_boolean(value, default=False):
     """
     Attempt to cast *value* into a bool, returning *default* if it fails.
@@ -89,7 +93,8 @@ def _parse_boolean(value, default=False):
         return bool(value)
     except ValueError:
         return default
-        
+
+
 def _get(url):
     """
     Convert a URL into it's response (a *str*).
@@ -102,7 +107,8 @@ def _get(url):
         return response.read().decode('utf-8')
     else:
         return response.read()
-        
+
+
 def _build_oauth_url(url, parameters):
     # via post body
     # -> some protected resources
@@ -111,7 +117,8 @@ def _build_oauth_url(url, parameters):
     oauth_request = OAuthRequest.from_consumer_and_token(consumer, token=token, http_method='GET', http_url=url, parameters=parameters)
     oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), consumer, token)
     return oauth_request.to_url()
-                
+
+
 def _recursively_convert_unicode_to_str(input):
     """
     Force the given input to only use `str` instead of `bytes` or `unicode`.
@@ -127,6 +134,7 @@ def _recursively_convert_unicode_to_str(input):
         return str(input.encode('ascii', 'replace').decode('ascii'))
     else:
         return input
+
 
 def _from_json(data):
     """
@@ -144,6 +152,8 @@ _CACHE_COUNTER = {}
 _EDITABLE = False
 _CONNECTED = True
 _PATTERN = "empty"
+
+
 def _start_editing(pattern=_PATTERN):
     """
     Start adding seen entries to the cache. So, every time that you make a request,
@@ -153,12 +163,16 @@ def _start_editing(pattern=_PATTERN):
     global _EDITABLE, _PATTERN
     _EDITABLE = True
     _PATTERN = pattern
+
+
 def _stop_editing():
     """
     Stop adding seen entries to the cache.
     """
     global _EDITABLE
     _EDITABLE = False
+
+
 def connect():
     """
     Connect to the online data source in order to get up-to-date information.
@@ -166,6 +180,8 @@ def connect():
     """
     global _CONNECTED
     _CONNECTED = True
+
+
 def disconnect(filename="cache.json"):
     """
     Connect to the local cache, so no internet connection is required.
@@ -176,7 +192,9 @@ def disconnect(filename="cache.json"):
         with open(filename, 'r') as f:
             _CACHE = _recursively_convert_unicode_to_str(json.load(f))['data']
     except FileNotFoundError:
-        raise USGSException("""The cache file '{0}' was not found, and I cannot disconnect without one. If you have not been given a cache.json file, then you can create a new one:
+        raise USGSException("""The cache file '{0}' was not found, and I cannot
+        disconnect without one. If you have not been given a cache.json file,
+        then you can create a new one:
     >>> from earthquakes import earthquakes
     >>> earthquakes.connect()
     >>> earthquakes._start_editing()
@@ -188,6 +206,8 @@ def disconnect(filename="cache.json"):
     for key in _CACHE.keys():
         _CACHE_COUNTER[key] = 0
     _CONNECTED = False
+
+
 def _lookup(key):
     """
     Internal method that looks up a key in the local cache.
@@ -212,6 +232,8 @@ def _lookup(key):
         return _CACHE[key][_CACHE_COUNTER[key]]
     else:
         return ""
+
+
 def _add_to_cache(key, value):
     """
     Internal method to add a new key-value to the local cache.
@@ -224,7 +246,8 @@ def _add_to_cache(key, value):
     else:
         _CACHE[key] = [_PATTERN, value]
         _CACHE_COUNTER[key] = 0
-        
+
+
 def _clear_key(key):
     """
     Internal method to remove a key from the local cache.
@@ -232,7 +255,8 @@ def _clear_key(key):
     """
     if key in _CACHE:
         del _CACHE[key]
-        
+
+
 def _save_cache(filename="cache.json"):
     """
     Internal method to save the cache in memory to a file, so that it can be used later.
@@ -245,8 +269,12 @@ def _save_cache(filename="cache.json"):
 ################################################################################
 # Exceptions
 ################################################################################
+
+
 class TwitterException(Exception):
     pass
+
+
 class AuthenticationException(Exception):
     pass
 
@@ -300,7 +328,7 @@ class Coordinate(object):
         :type json_data: dict
         :returns: Coordinate
         """
-        if json_data == None:
+        if json_data is None:
             return Coordinate(None, None)
         elif len(json_data) >= 2:
             return Coordinate(_parse_float(json_data[0]),
@@ -313,7 +341,9 @@ class User(object):
     """
     A Twitter user (A twit?)
     """
-    def __init__(self, id, name, screen_name, description, location, followers, friends, created, favorites, tweets, verified):
+
+    def __init__(self, id, name, screen_name, description, location, followers,
+                 friends, created, favorites, tweets, verified):
         """
         Creates a new User
         
@@ -389,6 +419,7 @@ class User(object):
                 "favorites": self.favorites,
                 "tweets": self.tweets,
                 "verified": self.verified}
+
 
 class Tweet(object):
     """
@@ -477,7 +508,8 @@ class Tweet(object):
 ################################################################################
 # Service Methods
 ################################################################################
-    
+
+
 def _get_search_request(terms):
     """
     Used to build the request string used by :func:`search`.
@@ -486,7 +518,8 @@ def _get_search_request(terms):
     """
     return _build_oauth_url('https://api.twitter.com/1.1/search/tweets.json',
                             [('q', terms)])
-                            
+
+
 def _get_search_string(terms):
     """
     Like :func:`search` except returns the raw data instead.
@@ -499,7 +532,8 @@ def _get_search_string(terms):
     if _CONNECTED and _EDITABLE:
         _add_to_cache(key, result)
     return result
-    
+
+
 def search(terms):
     """
     Returns a list of Tweets that were found with the given search terms.
@@ -578,14 +612,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 class OAuthError(RuntimeError):
     """Generic exception class."""
     def __init__(self, message='OAuth error occured.'):
         self.message = message
 
+
 def _escape(s):
     """Escape a URL including any /."""
     return quote(s, safe='~')
+
 
 def _utf8_str(s):
     """Convert unicode to utf-8."""
@@ -594,13 +631,16 @@ def _utf8_str(s):
     else:
         return str(s)
 
+
 def _generate_timestamp():
     """Get seconds since epoch (UTC)."""
     return int(time())
 
+
 def _generate_nonce(length=8):
     """Generate pseudorandom number."""
     return ''.join([str(randint(0, 9)) for i in range(length)])
+
 
 def _generate_verifier(length=8):
     """Generate pseudorandom number."""
@@ -882,6 +922,7 @@ class OAuthRequest(object):
             parameters[k] = unquote(v[0])
         return parameters
     _split_url_string = staticmethod(_split_url_string)
+
 
 class OAuthSignatureMethod(object):
     """A strategy class that implements a signature method."""
