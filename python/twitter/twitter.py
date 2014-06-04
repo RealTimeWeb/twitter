@@ -50,6 +50,10 @@ def urlencode(query, params):
     """
     Correctly convert the given query and parameters into a full query+query
     string, ensuring the order of the params.
+
+    :param str query: the base url to query
+    :param dict params: the parameters to send to the url
+    :returns: a *str* of the full url
     """
     # apparently contrary to the HTTP RFCs, spaces in arguments must be encoded
     # as %20 rather than '+' when constructing an OAuth signature (and therefore
@@ -62,6 +66,9 @@ def urlencode(query, params):
 def _parse_int(value, default=0):
     """
     Attempt to cast *value* into an integer, returning *default* if it fails.
+
+    :param value: The value to be converted to an integer
+    :returns int: The integer representation of value, or 0
     """
     if value is None:
         return default
@@ -74,6 +81,9 @@ def _parse_int(value, default=0):
 def _parse_float(value, default=0.0):
     """
     Attempt to cast *value* into a float, returning *default* if it fails.
+
+    :param value: The value to be converted to a float
+    :returns float: The float representation of value, or 0.0
     """
     if value is None:
         return default
@@ -86,6 +96,9 @@ def _parse_float(value, default=0.0):
 def _parse_boolean(value, default=False):
     """
     Attempt to cast *value* into a bool, returning *default* if it fails.
+
+    :param value: The value to be converted to a boolean
+    :returns bool: The boolean representation of value, or False
     """
     if value is None:
         return default
@@ -98,9 +111,12 @@ def _parse_boolean(value, default=False):
 def _get(url):
     """
     Convert a URL into it's response (a *str*).
+
+    :param str url: The URL to get the response from
+    :returns str: the response from the server
     """
-    headers = {'Content-Type' :'application/x-www-form-urlencoded',
-               'User-Agent' : 'CORGIS Twitter library for educational purposes'}
+    headers = {'Content-Type': 'application/x-www-form-urlencoded',
+               'User-Agent': 'CORGIS Twitter library for educational purposes'}
     req = request.Request(url, headers=headers)
     response = request.urlopen(req)
     if PYTHON_3:
@@ -114,7 +130,10 @@ def _build_oauth_url(url, parameters):
     # -> some protected resources
     consumer = OAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET)
     token = OAuthToken(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    oauth_request = OAuthRequest.from_consumer_and_token(consumer, token=token, http_method='GET', http_url=url, parameters=parameters)
+    oauth_request = OAuthRequest.from_consumer_and_token(consumer, token=token,
+                                                         http_method='GET',
+                                                         http_url=url,
+                                                         parameters=parameters)
     oauth_request.sign_request(OAuthSignatureMethod_HMAC_SHA1(), consumer, token)
     return oauth_request.to_url()
 
@@ -122,10 +141,15 @@ def _build_oauth_url(url, parameters):
 def _recursively_convert_unicode_to_str(input):
     """
     Force the given input to only use `str` instead of `bytes` or `unicode`.
-    This works even if the input is a dict, list, 
+    This works even if the input is a dict, list,
+
+    :params input: The bytes/unicode input
+    :returns str: The input converted to a `str`
     """
     if isinstance(input, dict):
-        return {_recursively_convert_unicode_to_str(key): _recursively_convert_unicode_to_str(value) for key, value in input.items()}
+        return {_recursively_convert_unicode_to_str(
+            key): _recursively_convert_unicode_to_str(value) for key, value in
+            input.items()}
     elif isinstance(input, list):
         return [_recursively_convert_unicode_to_str(element) for element in input]
     elif not PYTHON_3 and isinstance(input, unicode):
@@ -192,17 +216,17 @@ def disconnect(filename="cache.json"):
         with open(filename, 'r') as f:
             _CACHE = _recursively_convert_unicode_to_str(json.load(f))['data']
     except FileNotFoundError:
-        raise USGSException("""The cache file '{0}' was not found, and I cannot
-        disconnect without one. If you have not been given a cache.json file,
-        then you can create a new one:
-    >>> from earthquakes import earthquakes
-    >>> earthquakes.connect()
-    >>> earthquakes._start_editing()
-    ...
-    >>> earthquakes.get_report()
-    ...
-    >>> earthquakes._save_cache('{0}')
-""".format(filename))
+        # TODO: change the language here to be relevant to Twitter
+        raise TwitterException("""The cache file '{0}' was not found,
+        and I cannot disconnect without one. If you have not been given a
+        cache.json file, then you can create a new one:
+        >>> from earthquakes import earthquakes
+        >>> earthquakes.connect()
+        >>> earthquakes._start_editing()
+        ...
+        >>> earthquakes.get_report()
+        ...
+        >>> earthquakes._save_cache('{0}')""".format(filename))
     for key in _CACHE.keys():
         _CACHE_COUNTER[key] = 0
     _CONNECTED = False
