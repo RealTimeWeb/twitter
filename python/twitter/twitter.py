@@ -538,7 +538,8 @@ def _get_search_request(terms):
     """
     Used to build the request string used by :func:`search`.
     
-    :param str terms: The string that will be used to search wtih.
+    :param str terms: The string that will be used to search with.
+    :returns: The full url with query and parameters added
     """
     return _build_oauth_url('https://api.twitter.com/1.1/search/tweets.json',
                             [('q', terms)])
@@ -548,7 +549,7 @@ def _get_search_string(terms):
     """
     Like :func:`search` except returns the raw data instead.
     
-    :param str terms: The string that will be used to search wtih.
+    :param str terms: The string that will be used to search with.
     :returns: str
     """
     key = _get_search_request(terms)
