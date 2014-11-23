@@ -1,0 +1,153 @@
+{
+    "metadata": {
+        "name": "Twitter Search",
+        "description": "Get Information about tweets",
+        "version": 0.4,
+        "author": "Peeratham Techapalokul",
+        "contact": "tpeera4@vt.edu"
+    },
+    "objects": {
+        "Tweet": {
+            "name": "tweet",
+            "format": "json",
+            "fields": {
+                "created_at": {
+                    "type": "string",
+                    "path": "created_at"
+                },
+                "id_str": {
+                    "type": "string",
+                    "path": "id_str"
+                },
+                "favorited": {
+                    "type": "boolean",
+                    "path": "id_str"
+                },
+                "text": {
+                    "type": "string",
+                    "path": "text"
+                },
+                "user": {
+                    "type": "User",
+                    "path": "user"
+                },
+                "favorite_count": {
+                    "type": "integer",
+                    "path": "favorite_count"
+                },
+                "entities": {
+                    "type": "Entities",
+                    "path": "entities"
+                },
+                "retweet_count": {
+                    "type": "integer",
+                    "path": "retweet_count"
+                },
+                "coordinates": {
+                    "type": "float[]",
+                    "path": "coordinates"
+                }
+            }
+        },
+        "User": {
+            "name": "user",
+            "format": "json",
+            "fields": {
+                "name": {
+                    "type": "string",
+                    "path": "name"
+                },
+                "profile_image_url": {
+                    "type": "string",
+                    "path": "profile_image_url"
+                }
+            }
+        },
+        "Media": {
+            "name": "media",
+            "format": "json",
+            "fields": {
+                "type": {
+                    "type": "string",
+                    "path": "type"
+                },
+                "media_url": {
+                    "type": "string",
+                    "path": "media_url"
+                }
+            }
+        },
+        "Entities": {
+            "name": "entities",
+            "format": "json",
+            "fields": {
+                "urls": {
+                    "type": "URL[]",
+                    "path": "urls"
+                },
+                "hashtags": {
+                    "type": "Hashtag[]",
+                    "path": "hashtags"
+                },
+                "media": {
+                    "type": "Media[]",
+                    "path": "media"
+                }
+            }
+        },
+        "URL": {
+            "name": "url",
+            "format": "json",
+            "fields": {
+                "url": {
+                    "type": "string",
+                    "path": "url"
+                }
+            }
+        },
+        "Hashtag": {
+            "name": "hashtag",
+            "format": "json",
+            "fields": {
+                "text": {
+                    "type": "string",
+                    "path": "text"
+                }
+            }
+        }
+    },
+    "functions": {
+        "query": {
+            "url": "https://api.twitter.com/1.1/search/tweets.json",
+            "verb": "get",
+            "description": "These are the functions exposed to the student programmer.",
+            "comment": "Again, comments hidden in source.",
+            "output": "Tweet[]",
+            "format": "json",
+            "post": "statuses",
+            "inputs": {
+                "keyword": {
+                    "type": "string",
+                    "path": "q",
+                    "description": "query term",
+                    "indexable": true,
+                    "order": 0
+                },
+                "type": {
+                    "type": "string",
+                    "path": "result_type",
+                    "description": "Example Values: mixed, recent, popular",
+                    "indexable": true,
+                    "order": 1
+                },
+                "count": {
+                    "type": "integer",
+                    "path": "count",
+                    "description": "number of tweet results",
+                    "indexable": true,
+                    "order": 2
+                }
+            }
+        }
+    }
+}
