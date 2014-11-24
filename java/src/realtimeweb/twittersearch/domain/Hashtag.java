@@ -11,7 +11,7 @@ import java.util.Map;
 
 
 /**
- * 
+ * hashtags extracted from the Tweet text
  */
 public class Hashtag {
 	

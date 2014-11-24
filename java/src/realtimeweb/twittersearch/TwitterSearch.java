@@ -24,7 +24,7 @@ import realtimeweb.stickyweb.exceptions.StickyWebLoadDataSourceException;
 import realtimeweb.stickyweb.exceptions.StickyWebNotInCacheException;
 
 /**
- * Get Information about tweets
+ * Get a collection of relevant Tweets matching a specified query
  */
 public class TwitterSearch {
     private StickyWeb connection;
@@ -32,47 +32,12 @@ public class TwitterSearch {
     
     public static void main(String[] args) {
         TwitterSearch twitterSearch = new TwitterSearch();
-        ArrayList<Tweet> tweets = twitterSearch.query("ebola", "recent", 5);
-        for (Tweet t : tweets ){
-     	   System.out.println("---------live--------------");
-             System.out.format("id:%s\n",t.getId_Str());
-             System.out.format("created at:%s\n",t.getCreated_At());
-             System.out.format("user: %s\n",t.getUser().getName());
-             System.out.format("text: %s\n",t.getText());
-             System.out.format("hashtags: %s\n",t.getEntities().getHashtags());
-             System.out.format("urls: %s\n",t.getEntities().getUrls());
-             System.out.format("media: %s\n",t.getEntities().getMedia());
-             System.out.format("retweets: %s\n",t.getRetweet_Count());
-             System.out.format("coordinates: %s\n",t.getCoordinates());
-        }
-       
-       
-        //Test load data from cache
-        twitterSearch = new TwitterSearch("cache.json");
-        tweets = twitterSearch.query("virginiatech", "popular", 5);
-        for (Tweet t : tweets ){
-     	   System.out.println("---------from cache--------------");
-             System.out.format("id:%s\n",t.getId_Str());
-             System.out.format("created at:%s\n",t.getCreated_At());
-             System.out.format("user: %s\n",t.getUser().getName());
-             System.out.format("text: %s\n",t.getText());
-             System.out.format("hashtags: %s\n",t.getEntities().getHashtags());
-             System.out.format("urls: %s\n",t.getEntities().getUrls());
-             System.out.format("media: %s\n",t.getEntities().getMedia());
-             System.out.format("retweets: %s\n",t.getRetweet_Count());
-             System.out.format("coordinates: %s\n",t.getCoordinates());
-        }
         
         // The following pre-generated code demonstrates how you can
 		// use StickyWeb's EditableCache to create data files.
 		try {
             // First, you create a new EditableCache, possibly passing in an FileInputStream to an existing cache
 			EditableCache recording = new EditableCache();
-			 String[][] requests = {{"ebola","recent","5"},{"virginiatech","popular", "5"}};
-             for (String[] request : requests) {
-                  System.out.println("keyword:"+request[0]+" type:"+request[1]+" count:"+request[2]);
-                  recording.addData(twitterSearch.queryRequest(request[0], request[1], Integer.parseInt(request[2])));              
-             }
             // You can add a Request object directly to the cache.
 			// recording.addData(twitterSearch.queryRequest(...));
             // Then you can save the expanded cache, possibly over the original
@@ -87,22 +52,6 @@ public class TwitterSearch {
 			System.err.println("The given cache.json file was not found, or could not be opened.");
 		}
         // ** End of how to use the EditableCache
- catch (NumberFormatException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (StickyWebNotInCacheException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (StickyWebInternetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (StickyWebInvalidQueryString e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (StickyWebInvalidPostArguments e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
     }
 	
     /**
@@ -110,13 +59,11 @@ public class TwitterSearch {
      */
 	public TwitterSearch() {
         this.online = true;
-        String consumerKey = "" ;
-        String consumerSecret ="" ;
-        String token = "" ;
-        String tokenSecret = "" ;
-        try {
-             this.connection = new StickyWeb( null);
-             this.connection .setAuthentication(consumerKey , consumerSecret , token , tokenSecret );
+
+		try {
+			this.connection = new StickyWeb(null);
+	        //modified: authentication configuration
+			this.connection.setAuthentication(Constants.consumerKey , Constants.consumerSecret , Constants.token , Constants.tokenSecret );
 		} catch (StickyWebDataSourceNotFoundException e) {
 			System.err.println("The given datastream could not be loaded.");
 		} catch (StickyWebDataSourceParseException e) {
@@ -153,20 +100,23 @@ public class TwitterSearch {
     
     
     /**
-     * These are the functions exposed to the student programmer.
+     * perform queries of Tweets based on query
      *
      * This version of the function meant for instructors to capture a
      * StickyWebRequest object which can be put into an EditableCache and then
      * stored to a "cache.json" file.
      * 
-     * @param keyword query term
+     * @param keyword The query expression. For example, watching now : containing both  watching  and  now 
+"watching now" : containing the exact phrase "watching now"
+
+from:alexiskold : sent from person  alexiskold 
      * @return a StickyWebRequest
      * @param type Example Values: mixed, recent, popular
      * @return a StickyWebRequest
      * @param count number of tweet results
      * @return a StickyWebRequest
      */
-    private StickyWebRequest queryRequest(String keyword, String type, Integer count) {
+    public StickyWebRequest queryRequest(String keyword, String type, Integer count) {
         try {
             /*
             * Perform any user parameter validation here. E.g.,
@@ -202,16 +152,19 @@ public class TwitterSearch {
     }
     
     /**
-     * These are the functions exposed to the student programmer.
+     * perform queries of Tweets based on query
     
-     * @param keyword query term
+     * @param keyword The query expression. For example, watching now : containing both  watching  and  now 
+"watching now" : containing the exact phrase "watching now"
+
+from:alexiskold : sent from person  alexiskold 
      * @param type Example Values: mixed, recent, popular
      * @param count number of tweet results
      * @return a Tweet[]
      */
 	public ArrayList<Tweet> query(String keyword, String type, Integer count) {
         
-        // Again, comments hidden in source.
+        // At this time, users represented by access tokens can make 180 requests/queries per 15 minutes.
         try {
 			StickyWebRequest request =  queryRequest(keyword, type, count);
             
@@ -222,6 +175,7 @@ public class TwitterSearch {
                 return result;
             Iterator<Object> resultIter = ((ArrayList<Object>) ((Map<String, Object>) response.asJSON()).get("statuses")).iterator();
             while (resultIter.hasNext()) {
+            	//modified: cast resultIter to Map<String Object> instead of List<Object>
                 result.add(new Tweet((Map<String, Object>)resultIter.next()));
             }
             return result;

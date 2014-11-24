@@ -11,23 +11,23 @@ import java.util.Map;
 
 
 /**
- * 
+ * The Twitter user who post this tweet
  */
 public class User {
 	
     private String name;
-    private String profile_Image_Url;
+    private String screen_Name;
     
     
     /*
-     * @return 
+     * @return The name of the user, as they ve defined it. Not necessarily a person s name.
      */
     public String getName() {
         return this.name;
     }
     
     /*
-     * @param 
+     * @param The name of the user, as they ve defined it. Not necessarily a person s name.
      * @return String
      */
     public void setName(String name) {
@@ -35,18 +35,18 @@ public class User {
     }
     
     /*
-     * @return 
+     * @return The screen name, handle, or alias that this user identifies themselves with.
      */
-    public String getProfile_Image_Url() {
-        return this.profile_Image_Url;
+    public String getScreen_Name() {
+        return this.screen_Name;
     }
     
     /*
-     * @param 
+     * @param The screen name, handle, or alias that this user identifies themselves with.
      * @return String
      */
-    public void setProfile_Image_Url(String profile_Image_Url) {
-        this.profile_Image_Url = profile_Image_Url;
+    public void setScreen_Name(String screen_Name) {
+        this.screen_Name = screen_Name;
     }
     
 	
@@ -56,7 +56,7 @@ public class User {
 	 * @return String
 	 */
 	public String toString() {
-		return "User[" +name+", "+profile_Image_Url+"]";
+		return "User[" +name+", "+screen_Name+"]";
 	}
 	
 	/**
@@ -69,7 +69,7 @@ public class User {
         // NOTE: It's much safer to check the Map for fields than to catch a runtime exception.
         try {
             this.name = raw.get("name").toString();
-            this.profile_Image_Url = raw.get("profile_image_url").toString();
+            this.screen_Name = raw.get("name").toString();
         } catch (NullPointerException e) {
     		System.err.println("Could not convert the response to a User; a field was missing.");
     		e.printStackTrace();

@@ -17,7 +17,7 @@ import realtimeweb.twittersearch.domain.Media;
 import realtimeweb.twittersearch.domain.Hashtag;
 
 /**
- * 
+ * Entities provide structured data from Tweets including resolved URLs, media, hashtags without having to parse the text to extract that information.
  */
 public class Entities {
 	
@@ -27,14 +27,14 @@ public class Entities {
     
     
     /*
-     * @return 
+     * @return An array of media attached to the Tweet with the Twitter Photo Upload feature.
      */
     public ArrayList<Media> getMedia() {
         return this.media;
     }
     
     /*
-     * @param 
+     * @param An array of media attached to the Tweet with the Twitter Photo Upload feature.
      * @return ArrayList<Media>
      */
     public void setMedia(ArrayList<Media> media) {
@@ -42,14 +42,14 @@ public class Entities {
     }
     
     /*
-     * @return 
+     * @return An array of hashtags extracted from the Tweet text.
      */
     public ArrayList<Hashtag> getHashtags() {
         return this.hashtags;
     }
     
     /*
-     * @param 
+     * @param An array of hashtags extracted from the Tweet text.
      * @return ArrayList<Hashtag>
      */
     public void setHashtags(ArrayList<Hashtag> hashtags) {
@@ -57,14 +57,14 @@ public class Entities {
     }
     
     /*
-     * @return 
+     * @return An array of URLs extracted from the Tweet text.
      */
     public ArrayList<Url> getUrls() {
         return this.urls;
     }
     
     /*
-     * @param 
+     * @param An array of URLs extracted from the Tweet text.
      * @return ArrayList<Url>
      */
     public void setUrls(ArrayList<Url> urls) {
@@ -90,21 +90,25 @@ public class Entities {
         // TODO: Check that the data has the correct schema.
         // NOTE: It's much safer to check the Map for fields than to catch a runtime exception.
         try {
-        	if(raw.get("media")!=null){
-        		 this.media = new ArrayList<Media>();
-                 Iterator<Object> mediaIter = ((List<Object>)raw.get("media")).iterator();
-                 while (mediaIter.hasNext()) {
-                     this.media.add(new Media((Map<String, Object>)mediaIter.next()));
-                 }
-        	}
+            this.media = new ArrayList<Media>();
+            //modified: check for null
+            if(raw.get("media")!=null){
+            Iterator<Object> mediaIter = ((List<Object>)raw.get("media")).iterator();
+            while (mediaIter.hasNext()) {
+            	//modified: cast to Map
+                this.media.add(new Media((Map<String, Object>)mediaIter.next()));
+            }
+            }
             this.hashtags = new ArrayList<Hashtag>();
             Iterator<Object> hashtagsIter = ((List<Object>)raw.get("hashtags")).iterator();
             while (hashtagsIter.hasNext()) {
+            	//modified: cast to Map
                 this.hashtags.add(new Hashtag((Map<String, Object>)hashtagsIter.next()));
             }
             this.urls = new ArrayList<Url>();
             Iterator<Object> urlsIter = ((List<Object>)raw.get("urls")).iterator();
             while (urlsIter.hasNext()) {
+            	//modified: cast to Map
                 this.urls.add(new Url((Map<String, Object>)urlsIter.next()));
             }
         } catch (NullPointerException e) {

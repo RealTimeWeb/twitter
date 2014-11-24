@@ -11,7 +11,7 @@ import java.util.Map;
 
 
 /**
- * 
+ * The media attached to the Tweet with the Twitter Photo Upload feature. 
  */
 public class Media {
 	
@@ -20,14 +20,14 @@ public class Media {
     
     
     /*
-     * @return 
+     * @return Only photo for now
      */
     public String getType() {
         return this.type;
     }
     
     /*
-     * @param 
+     * @param Only photo for now
      * @return String
      */
     public void setType(String type) {
@@ -35,14 +35,14 @@ public class Media {
     }
     
     /*
-     * @return 
+     * @return The URL of the media file
      */
     public String getMedia_Url() {
         return this.media_Url;
     }
     
     /*
-     * @param 
+     * @param The URL of the media file
      * @return String
      */
     public void setMedia_Url(String media_Url) {

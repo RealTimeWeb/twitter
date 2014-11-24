@@ -11,7 +11,7 @@ import java.util.Map;
 
 
 /**
- * 
+ * The url extracted from the Tweet text.
  */
 public class Url {
 	

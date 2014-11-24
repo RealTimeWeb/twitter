@@ -1,0 +1,198 @@
+{
+    "metadata": {
+        "name": "Twitter Search",
+        "description": "Get a collection of relevant Tweets matching a specified query",
+        "version": 0.4,
+        "author": "Peeratham Techapalokul",
+        "contact": "tpeera4@vt.edu"
+    },
+    "objects": {
+        "Tweet": {
+            "name": "tweet",
+            "format": "json",
+            "description": "Tweets are the basic atomic building block of all things Twitter. Tweets, also known more generically as “status updates.” ",
+            "fields": {
+                "created_at": {
+                    "type": "string",
+                    "path": "created_at",
+                    "description": "The time when this Tweet was created"
+                },
+                "id_str": {
+                    "type": "string",
+                    "path": "id_str",
+                    "description": "The string representation of the unique identifier for this Tweet"
+                },
+                "favorited": {
+                    "type": "boolean",
+                    "path": "id_str",
+                    "description": "Indicates whether this Tweet has been favorited by the authenticating user"
+                },
+                "text": {
+                    "type": "string",
+                    "path": "text",
+                    "description": "the actual text of the tweet"
+                },
+                "user": {
+                    "type": "User",
+                    "path": "user",
+                    "description": "The user who posted this Tweet."
+                },
+                "favorite_count": {
+                    "type": "integer",
+                    "path": "favorite_count",
+                    "description": "Indicates approximately how many times this Tweet has been “favorited” by Twitter users."
+                },
+                "entities": {
+                    "type": "Entities",
+                    "path": "entities",
+                    "description": "Entities which have been parsed out of the text of the Tweet"
+                },
+                "retweet_count": {
+                    "type": "integer",
+                    "path": "retweet_count",
+                    "description": "Number of times this Tweet has been retweeted."
+                },
+                "place": {
+                    "type": "Place",
+                    "path": "place",
+                    "description": "When present, indicates that the tweet is associated (but not necessarily originating from) a Place."
+                },
+                "coordinates": {
+                    "type": "float[]",
+                    "path": "coordinates.coordinates",
+                    "description": "Represents the geographic location of this Tweet (latitude first, then longitude)"
+                }
+            }
+        },
+        "User": {
+            "name": "user",
+            "format": "json",
+            "description": "The Twitter user who post this tweet",
+            "fields": {
+                "name": {
+                    "type": "string",
+                    "path": "name",
+                    "description": "The name of the user, as they’ve defined it. Not necessarily a person’s name."
+                },
+                "screen_name": {
+                    "type": "string",
+                    "path": "name",
+                    "description": "The screen name, handle, or alias that this user identifies themselves with."
+                }
+            }
+        },
+        "Media": {
+            "name": "media",
+            "format": "json",
+            "description": "The media attached to the Tweet with the Twitter Photo Upload feature. ",
+            "fields": {
+                "type": {
+                    "type": "string",
+                    "path": "type",
+                    "description": "Only photo for now"
+                },
+                "media_url": {
+                    "type": "string",
+                    "path": "media_url",
+                    "description": "The URL of the media file"
+                }
+            }
+        },
+        "Entities": {
+            "name": "entities",
+            "format": "json",
+            "description": "Entities provide structured data from Tweets including resolved URLs, media, hashtags without having to parse the text to extract that information.",
+            "fields": {
+                "urls": {
+                    "type": "URL[]",
+                    "path": "urls",
+                    "description": "An array of URLs extracted from the Tweet text."
+                },
+                "hashtags": {
+                    "type": "Hashtag[]",
+                    "path": "hashtags",
+                    "description": "An array of hashtags extracted from the Tweet text."
+                },
+                "media": {
+                    "type": "Media[]",
+                    "path": "media",
+                    "description": "An array of media attached to the Tweet with the Twitter Photo Upload feature."
+                }
+            }
+        },
+        "URL": {
+            "name": "url",
+            "format": "json",
+            "description": "The url extracted from the Tweet text.",
+            "fields": {
+                "url": {
+                    "type": "string",
+                    "path": "url"
+                }
+            }
+        },
+        "Hashtag": {
+            "name": "hashtag",
+            "format": "json",
+            "description": "hashtags extracted from the Tweet text",
+            "fields": {
+                "text": {
+                    "type": "string",
+                    "path": "text"
+                }
+            }
+        },
+        "Place": {
+            "name": "place",
+            "format": "json",
+            "description": "Places are specific, named locations with corresponding geo coordinates.",
+            "fields": {
+                "full_name": {
+                    "type": "string",
+                    "path": "full_name",
+                    "description": "Full human-readable representation of the place’s name."
+                },
+                "country": {
+                    "type": "string",
+                    "path": "country",
+                    "description": "Name of the country containing this place."
+                }
+            }
+        }
+    },
+    "functions": {
+        "query": {
+            "url": "https://api.twitter.com/1.1/search/tweets.json",
+            "verb": "get",
+            "description": "perform queries of Tweets based on query",
+            "comment": "At this time, users represented by access tokens can make 180 requests/queries per 15 minutes.",
+            "output": "Tweet[]",
+            "format": "json",
+            "post": "statuses",
+            "inputs": {
+                "keyword": {
+                    "type": "string",
+                    "path": "q",
+                    "description": "The query expression. For example, watching now : containing both “watching” and “now”,\n\"watching now\" : containing the exact phrase \"watching now\",\n\nfrom:alexiskold : sent from person “alexiskold”",
+                    "comment": "More info on query https://dev.twitter.com/rest/public/search",
+                    "indexable": true,
+                    "order": 0
+                },
+                "type": {
+                    "type": "string",
+                    "path": "result_type",
+                    "description": "Example Values: mixed, recent, popular",
+                    "indexable": false,
+                    "order": 1
+                },
+                "count": {
+                    "type": "integer",
+                    "path": "count",
+                    "description": "number of tweet results",
+                    "indexable": false,
+                    "order": 2
+                }
+            }
+        }
+    }
+}
